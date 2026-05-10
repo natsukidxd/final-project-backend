@@ -43,20 +43,14 @@ async function register(params: any) {
 
   await account.save();
 
-  // Send verification email (non-blocking — don't fail registration if email fails)
-  let emailSent = false;
-  try {
-    await sendVerificationEmail(account);
-    emailSent = true;
-  } catch (emailErr: any) {
-    console.error('Failed to send verification email:', emailErr?.message || emailErr);
-  }
+  // Fire-and-forget: don't block the response waiting for email
+  sendVerificationEmail(account).catch((err: any) =>
+    console.error('Failed to send verification email:', err?.message || err)
+  );
 
   return {
-    message: emailSent
-      ? 'Registration successful, please check your email for verification instructions'
-      : 'Registration successful, but email could not be sent',
-    verificationToken: account.verificationToken // for testing/dev fallback
+    message: 'Registration successful, please check your email for verification instructions',
+    verificationToken: account.verificationToken
   };
 }
 
@@ -90,18 +84,16 @@ async function forgotPassword({ email }: { email: string }) {
 
   const resetUrl = `${process.env.CORS_ORIGIN || 'http://localhost:4200'}/account/reset-password?token=${account.resetToken}`;
 
-  // Send password reset email (non-blocking)
-  try {
-    await sendEmail({
-      to: account.email,
-      subject: 'Reset Password',
-      html: `<h4>Reset Password</h4>
-             <p>Please click the below link to reset your password, the link will be valid for 1 day:</p>
-             <p><a href="${resetUrl}">${resetUrl}</a></p>`
-    });
-  } catch (emailErr: any) {
-    console.error('Failed to send password reset email:', emailErr?.message || emailErr);
-  }
+  // Fire-and-forget: don't block the response waiting for email
+  sendEmail({
+    to: account.email,
+    subject: 'Reset Password',
+    html: `<h4>Reset Password</h4>
+           <p>Please click the below link to reset your password, the link will be valid for 1 day:</p>
+           <p><a href="${resetUrl}">${resetUrl}</a></p>`
+  }).catch((err: any) =>
+    console.error('Failed to send password reset email:', err?.message || err)
+  );
 }
 
 async function validateResetToken({ token }: { token: string }) {
