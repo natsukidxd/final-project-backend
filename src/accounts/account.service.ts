@@ -43,8 +43,12 @@ async function register(params: any) {
 
   await account.save();
 
-  // Send verification email
-  await sendVerificationEmail(account);
+  // Send verification email (non-blocking — don't fail registration if email fails)
+  try {
+    await sendVerificationEmail(account);
+  } catch (emailErr: any) {
+    console.error('Failed to send verification email:', emailErr?.message || emailErr);
+  }
 }
 
 async function sendVerificationEmail(account: any) {
@@ -76,13 +80,19 @@ async function forgotPassword({ email }: { email: string }) {
   await account.save();
 
   const resetUrl = `${process.env.CORS_ORIGIN || 'http://localhost:4200'}/account/reset-password?token=${account.resetToken}`;
-  await sendEmail({
-    to: account.email,
-    subject: 'Reset Password',
-    html: `<h4>Reset Password</h4>
-           <p>Please click the below link to reset your password, the link will be valid for 1 day:</p>
-           <p><a href="${resetUrl}">${resetUrl}</a></p>`
-  });
+
+  // Send password reset email (non-blocking)
+  try {
+    await sendEmail({
+      to: account.email,
+      subject: 'Reset Password',
+      html: `<h4>Reset Password</h4>
+             <p>Please click the below link to reset your password, the link will be valid for 1 day:</p>
+             <p><a href="${resetUrl}">${resetUrl}</a></p>`
+    });
+  } catch (emailErr: any) {
+    console.error('Failed to send password reset email:', emailErr?.message || emailErr);
+  }
 }
 
 async function validateResetToken({ token }: { token: string }) {
