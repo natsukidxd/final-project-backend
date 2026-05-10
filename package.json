@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc && xcopy src\\swagger.yaml dist\\ /Y",
+    "build": "tsc && shx cp src/swagger.yaml dist/swagger.yaml",
     "start": "node dist/server.js",
     "prod": "npm run build && npm start"
 },
@@ -42,6 +42,7 @@
     "@types/nodemailer": "^8.0.0",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/uuid": "^10.0.0",
+    "shx": "^0.4.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^6.0.3"
   }
