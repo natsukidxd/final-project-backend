@@ -5,10 +5,10 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc",
+    "build": "tsc && xcopy src\\swagger.yaml dist\\ /Y",
     "start": "node dist/server.js",
     "prod": "npm run build && npm start"
-  },
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
