@@ -139,6 +139,10 @@ function authenticate(req: Request, res: Response, next: NextFunction) {
 
 function refreshToken(req: Request, res: Response, next: NextFunction) {
   const token = req.cookies?.refreshToken || '';
+  if (!token) {
+    return res.status(204).send(); // No token → no-op, no error logged
+  }
+
   const ipAddress = (req.ip || '');
 
   accountService.refreshToken({ token, ipAddress })
