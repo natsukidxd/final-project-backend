@@ -99,7 +99,7 @@ function updateSchema(req: Request, res: Response, next: NextFunction) {
 
 function register(req: Request, res: Response, next: NextFunction) {
   accountService.register(req.body)
-    .then(() => res.json({ message: 'Registration successful, please check your email for verification instructions' }))
+    .then((result: any) => res.json(result))
     .catch(next);
 }
 

@@ -44,11 +44,20 @@ async function register(params: any) {
   await account.save();
 
   // Send verification email (non-blocking — don't fail registration if email fails)
+  let emailSent = false;
   try {
     await sendVerificationEmail(account);
+    emailSent = true;
   } catch (emailErr: any) {
     console.error('Failed to send verification email:', emailErr?.message || emailErr);
   }
+
+  return {
+    message: emailSent
+      ? 'Registration successful, please check your email for verification instructions'
+      : 'Registration successful, but email could not be sent',
+    verificationToken: account.verificationToken // for testing/dev fallback
+  };
 }
 
 async function sendVerificationEmail(account: any) {
