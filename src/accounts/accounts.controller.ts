@@ -150,7 +150,12 @@ function refreshToken(req: Request, res: Response, next: NextFunction) {
       setTokenCookie(res, refreshToken);
       res.json(account);
     })
-    .catch(next);
+    .catch((err: any) => {
+      // Invalid/expired/revoked refresh token — clear the stale cookie
+      clearTokenCookie(res);
+      // Return a 401 so the frontend knows to redirect to login
+      return res.status(401).json({ message: 'Invalid refresh token, please login again' });
+    });
 }
 
 function revokeToken(req: Request, res: Response, next: NextFunction) {
@@ -220,4 +225,14 @@ function setTokenCookie(res: Response, token: string) {
     path: '/'
   };
   res.cookie('refreshToken', token, cookieOptions);
+}
+
+function clearTokenCookie(res: Response) {
+  res.cookie('refreshToken', '', {
+    httpOnly: true,
+    secure: process.env.COOKIE_SECURE === 'true',
+    sameSite: (process.env.COOKIE_SAMESITE || 'lax') as 'lax' | 'strict' | 'none' | undefined,
+    maxAge: 0, // Expire immediately
+    path: '/'
+  });
 }

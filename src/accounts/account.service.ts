@@ -43,6 +43,16 @@ async function register(params: any) {
 
   await account.save();
 
+  // Build verification URL for manual email verification (ethereal doesn't work on Render)
+  const verifyUrl = `${process.env.CORS_ORIGIN || 'http://localhost:4200'}/account/verify-email?token=${account.verificationToken}`;
+
+  // Log to console for visibility in Render logs
+  console.log('=== MANUAL EMAIL VERIFICATION ===');
+  console.log('Account:', params.email);
+  console.log('Verification Token:', account.verificationToken);
+  console.log('Verify URL:', verifyUrl);
+  console.log('=================================');
+
   // Fire-and-forget: don't block the response waiting for email
   sendVerificationEmail(account).catch((err: any) =>
     console.error('Failed to send verification email:', err?.message || err)
@@ -50,7 +60,8 @@ async function register(params: any) {
 
   return {
     message: 'Registration successful, please check your email for verification instructions',
-    verificationToken: account.verificationToken
+    verificationToken: account.verificationToken,
+    verifyUrl
   };
 }
 
