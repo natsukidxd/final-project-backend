@@ -20,22 +20,76 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - title
+                - firstName
+                - lastName
+                - email
+                - password
+                - confirmPassword
               properties:
                 title:
                   type: string
+                  example: Mr
                 firstName:
                   type: string
+                  example: John
                 lastName:
                   type: string
+                  example: Doe
                 email:
                   type: string
+                  format: email
+                  example: john.doe@example.com
                 password:
                   type: string
+                  format: password
+                  minLength: 6
+                  example: password123
                 confirmPassword:
                   type: string
+                  format: password
+                  description: Must match the password field
+                  example: password123
       responses:
         "200":
           description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Registration successful, please check your email for verification instructions
+                  verificationToken:
+                    type: string
+                    format: uuid
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  verifyUrl:
+                    type: string
+                    format: url
+                    example: http://localhost:4200/account/verify-email?token=550e8400-e29b-41d4-a716-446655440000
+        "400":
+          description: Bad request - validation error or email already taken
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Email "john.doe@example.com" is already registered
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
   /accounts/verify-email:
     post:
       tags:
@@ -47,12 +101,45 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - token
               properties:
                 token:
                   type: string
+                  format: uuid
+                  description: Verification token received from registration
+                  example: 550e8400-e29b-41d4-a716-446655440000
       responses:
         "200":
           description: Verification successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Verification successful, you can now login
+        "400":
+          description: Verification failed - invalid or expired token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Verification failed
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
   /accounts/authenticate:
     post:
       tags:
@@ -64,14 +151,86 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - email
+                - password
               properties:
                 email:
                   type: string
+                  format: email
+                  example: john.doe@example.com
                 password:
                   type: string
+                  format: password
+                  example: password123
       responses:
         "200":
           description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  title:
+                    type: string
+                    example: Mr
+                  firstName:
+                    type: string
+                    example: John
+                  lastName:
+                    type: string
+                    example: Doe
+                  email:
+                    type: string
+                    format: email
+                    example: john.doe@example.com
+                  role:
+                    type: string
+                    enum: [User, Admin]
+                    example: User
+                  created:
+                    type: string
+                    format: date-time
+                  updated:
+                    type: string
+                    format: date-time
+                  verified:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  isVerified:
+                    type: boolean
+                    example: true
+                  jwtToken:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIs...
+                  refreshToken:
+                    type: string
+                    format: uuid
+                    example: 550e8400-e29b-41d4-a716-446655440000
+        "400":
+          description: Bad request - invalid credentials or unverified email
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Email or password is incorrect
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
   /accounts/refresh-token:
     post:
       tags:
@@ -80,6 +239,73 @@ paths:
       responses:
         "200":
           description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  title:
+                    type: string
+                    example: Mr
+                  firstName:
+                    type: string
+                    example: John
+                  lastName:
+                    type: string
+                    example: Doe
+                  email:
+                    type: string
+                    format: email
+                    example: john.doe@example.com
+                  role:
+                    type: string
+                    enum: [User, Admin]
+                    example: User
+                  created:
+                    type: string
+                    format: date-time
+                  updated:
+                    type: string
+                    format: date-time
+                  verified:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  isVerified:
+                    type: boolean
+                    example: true
+                  jwtToken:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIs...
+                  refreshToken:
+                    type: string
+                    format: uuid
+                    example: 550e8400-e29b-41d4-a716-446655440000
+        "204":
+          description: No refresh token cookie present - no operation performed
+        "400":
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid token
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
   /accounts/revoke-token:
     post:
       tags:
@@ -87,33 +313,219 @@ paths:
       summary: Revoke a refresh token
       security:
         - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  format: uuid
+                  description: Refresh token to revoke. Falls back to cookie if not provided.
+                  example: 550e8400-e29b-41d4-a716-446655440000
       responses:
         "200":
           description: Token revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Token revoked
+        "400":
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid token
+        "401":
+          description: Unauthorized - missing Bearer token or insufficient permissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
   /accounts/forgot-password:
     post:
       tags:
         - Accounts
       summary: Send password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john.doe@example.com
       responses:
         "200":
-          description: Email sent
+          description: Password reset email sent (always returns success even if email not found, for security)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Please check your email for password reset instructions
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Validation error
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
   /accounts/validate-reset-token:
     post:
       tags:
         - Accounts
       summary: Validate reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  format: uuid
+                  description: Password reset token
+                  example: 550e8400-e29b-41d4-a716-446655440000
       responses:
         "200":
-          description: Token valid
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Token is valid
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid token
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
   /accounts/reset-password:
     post:
       tags:
         - Accounts
       summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - password
+                - confirmPassword
+              properties:
+                token:
+                  type: string
+                  format: uuid
+                  description: Password reset token
+                  example: 550e8400-e29b-41d4-a716-446655440000
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: newPassword123
+                confirmPassword:
+                  type: string
+                  format: password
+                  description: Must match the password field
+                  example: newPassword123
       responses:
         "200":
-          description: Password reset
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password reset successful, you can now login
+        "400":
+          description: Invalid or expired token, or validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid token
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
   /accounts:
     get:
       tags:
@@ -124,6 +536,66 @@ paths:
       responses:
         "200":
           description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 1
+                    title:
+                      type: string
+                      example: Mr
+                    firstName:
+                      type: string
+                      example: John
+                    lastName:
+                      type: string
+                      example: Doe
+                    email:
+                      type: string
+                      format: email
+                      example: john.doe@example.com
+                    role:
+                      type: string
+                      enum: [User, Admin]
+                      example: Admin
+                    created:
+                      type: string
+                      format: date-time
+                    updated:
+                      type: string
+                      format: date-time
+                    verified:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    isVerified:
+                      type: boolean
+                      example: true
+        "401":
+          description: Unauthorized - missing or invalid Bearer token, or non-admin user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
   /accounts/{id}:
     get:
       tags:
@@ -137,9 +609,78 @@ paths:
           required: true
           schema:
             type: integer
+            example: 1
       responses:
         "200":
           description: Account details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  title:
+                    type: string
+                    example: Mr
+                  firstName:
+                    type: string
+                    example: John
+                  lastName:
+                    type: string
+                    example: Doe
+                  email:
+                    type: string
+                    format: email
+                    example: john.doe@example.com
+                  role:
+                    type: string
+                    enum: [User, Admin]
+                    example: User
+                  created:
+                    type: string
+                    format: date-time
+                  updated:
+                    type: string
+                    format: date-time
+                  verified:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  isVerified:
+                    type: boolean
+                    example: true
+        "401":
+          description: Unauthorized - missing or invalid Bearer token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized
+        "404":
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Account not found
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
     put:
       tags:
         - Accounts
@@ -152,9 +693,122 @@ paths:
           required: true
           schema:
             type: integer
+            example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Dr
+                firstName:
+                  type: string
+                  example: Jane
+                lastName:
+                  type: string
+                  example: Doe
+                email:
+                  type: string
+                  format: email
+                  example: jane.doe@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: newPassword123
+                confirmPassword:
+                  type: string
+                  format: password
+                  description: Must match password if password is provided
+                  example: newPassword123
+                role:
+                  type: string
+                  enum: [User, Admin]
+                  description: Only available for admin users
+                  example: Admin
       responses:
         "200":
           description: Account updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  title:
+                    type: string
+                    example: Dr
+                  firstName:
+                    type: string
+                    example: Jane
+                  lastName:
+                    type: string
+                    example: Doe
+                  email:
+                    type: string
+                    format: email
+                    example: jane.doe@example.com
+                  role:
+                    type: string
+                    enum: [User, Admin]
+                    example: User
+                  created:
+                    type: string
+                    format: date-time
+                  updated:
+                    type: string
+                    format: date-time
+                  verified:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  isVerified:
+                    type: boolean
+                    example: true
+        "400":
+          description: Bad request - email already taken or validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Email "jane.doe@example.com" is already taken
+        "401":
+          description: Unauthorized - missing or invalid Bearer token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized
+        "404":
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Account not found
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
     delete:
       tags:
         - Accounts
@@ -167,9 +821,48 @@ paths:
           required: true
           schema:
             type: integer
+            example: 1
       responses:
         "200":
           description: Account deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Account deleted successfully
+        "401":
+          description: Unauthorized - missing or invalid Bearer token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized
+        "404":
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Account not found
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
 components:
   securitySchemes:
     bearerAuth:
