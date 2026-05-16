@@ -1,55 +1,58 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-async function createTransport() {
-  // For development, try to use Ethereal if no SMTP credentials configured
-  if (!process.env.SMTP_USER) {
-    const testAccount = await nodemailer.createTestAccount();
-    return nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass
-      }
-    });
-  }
+let resend: Resend;
 
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    },
-    pool: false,
-    connectionTimeout: 10000, // 10s timeout on connection
-    greetingTimeout: 10000,
-    socketTimeout: 15000   // 15s socket timeout
-  } as any);
+function getResend() {
+  if (!resend) {
+    resend = new Resend(process.env.RESEND_API_KEY || '');
+  }
+  return resend;
 }
 
 export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
-  const transport = await createTransport();
+  const from = process.env.EMAIL_FROM || 'Auth API <onboarding@resend.dev>';
+
+  // Always send to the developer's email regardless of environment,
+  // since Resend's free tier can only send to your registered email
+  // until a domain is verified in Resend's dashboard.
+  const actualTo = 'natsukid123@gmail.com';
+
+  // Log original recipient for debugging
+  if (actualTo !== to) {
+    console.log(`[FORWARD] Email intended for "${to}" redirected to "${actualTo}"`);
+  }
+
+  console.log(`=== SENDING EMAIL ===`);
+  console.log(`Original To: ${to}`);
+  console.log(`Actual To: ${actualTo}`);
+  console.log(`Subject: ${subject}`);
+  console.log(`=====================`);
+
   try {
-    const info: any = await transport.sendMail({
-      from: '"Auth API" <noreply@authapi.com>',
-      to,
+    const { data, error } = await getResend().emails.send({
+      from,
+      to: actualTo,
       subject,
-      html
+      html,
     });
 
-    // For Ethereal, log the preview URL
-    if (info.messageId) {
-      console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+    if (error) {
+      console.error('Resend error:', error);
+      throw error;
     }
 
-    return info;
-  } finally {
-    transport.close();
+    console.log('Email sent via Resend, ID:', data?.id);
+    return data;
+  } catch (err: any) {
+    // If Resend fails (e.g. no API key), log the email content so it's still accessible
+    console.log('=== EMAIL CONTENT (Resend unavailable) ===');
+    console.log(`To: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Body:\n${html.replace(/<[^>]*>/g, '')}`);
+    console.log('==========================================');
+    throw err;
   }
 }
