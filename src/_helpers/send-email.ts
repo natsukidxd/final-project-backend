@@ -30,6 +30,10 @@ async function createTransport() {
     connectionTimeout: 10000, // 10s timeout on connection
     greetingTimeout: 10000,
     socketTimeout: 15000, // 15s socket timeout
+    // Force IPv4 to avoid ENETUNREACH errors on hosts without IPv6 (e.g., Render)
+    connection: {
+      family: 4,
+    },
   } as any);
 }
 
