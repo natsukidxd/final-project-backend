@@ -8,7 +8,7 @@
     "build": "tsc && shx cp src/swagger.yaml dist/swagger.yaml",
     "start": "node dist/server.js",
     "prod": "npm run build && npm start"
-},
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -27,6 +27,7 @@
     "pg": "^8.20.0",
     "pg-hstore": "^2.3.4",
     "postgres": "^3.4.9",
+    "resend": "^6.12.3",
     "sequelize": "^6.37.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^14.0.0"
