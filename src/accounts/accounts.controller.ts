@@ -111,7 +111,7 @@ function verifyEmail(req: Request, res: Response, next: NextFunction) {
 
 function forgotPassword(req: Request, res: Response, next: NextFunction) {
   accountService.forgotPassword(req.body)
-    .then(() => res.json({ message: 'Please check your email for password reset instructions' }))
+    .then((result: any) => res.json(result))
     .catch(next);
 }
 

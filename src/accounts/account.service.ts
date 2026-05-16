@@ -95,7 +95,14 @@ async function forgotPassword({ email }: { email: string }) {
 
   const resetUrl = `${process.env.CORS_ORIGIN || 'http://localhost:4200'}/account/reset-password?token=${account.resetToken}`;
 
-  // Fire-and-forget: don't block the response waiting for email
+  // Log to console for development (since SMTP connections are often blocked on dev networks)
+  console.log('=== PASSWORD RESET ===');
+  console.log('Account:', account.email);
+  console.log('Reset Token:', account.resetToken);
+  console.log('Reset URL:', resetUrl);
+  console.log('========================');
+
+  // Try to send email, but don't fail if SMTP is unreachable (common in dev)
   sendEmail({
     to: account.email,
     subject: 'Reset Password',
@@ -103,8 +110,14 @@ async function forgotPassword({ email }: { email: string }) {
            <p>Please click the below link to reset your password, the link will be valid for 1 day:</p>
            <p><a href="${resetUrl}">${resetUrl}</a></p>`
   }).catch((err: any) =>
-    console.error('Failed to send password reset email:', err?.message || err)
+    console.error('Failed to send password reset email:', err?.message || err || '(SMTP unreachable — use the Reset URL logged above)')
   );
+
+  // Return both the message and the resetUrl so the frontend/API consumer can display the URL
+  return {
+    message: 'Please check your email for password reset instructions',
+    resetUrl
+  };
 }
 
 async function validateResetToken({ token }: { token: string }) {
