@@ -24,19 +24,12 @@ async function createTransport() {
     });
   }
 
-  // Render blocks outbound port 465 (SMTPS/SSL). Port 587 (STARTTLS) is the
-  // standard MSA submission port and is widely permitted on cloud providers.
-  const port = parseInt(process.env.SMTP_PORT || '587');
-  const usePort587 = port === 465; // Override 465 -> 587 since Render blocks 465
-  const smtpPort = usePort587 ? 587 : port;
-  const secure = usePort587 ? false : process.env.SMTP_SECURE === 'true';
-
-  console.log(`SMTP: connecting to ${process.env.SMTP_HOST}:${smtpPort} (secure: ${secure})`);
+  console.log(`SMTP: connecting to ${process.env.SMTP_HOST}:${process.env.SMTP_PORT} (secure: ${process.env.SMTP_SECURE})`);
 
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: smtpPort,
-    secure,
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
     auth: {
       user: process.env.SMTP_USER,
       pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''), // strip spaces from app password
