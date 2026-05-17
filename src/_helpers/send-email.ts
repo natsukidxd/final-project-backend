@@ -1,11 +1,13 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import dns from 'dns';
-import { promisify } from 'util';
 
 dotenv.config();
 
-const resolve4 = promisify(dns.resolve4);
+// Force Node.js to prefer IPv4 over IPv6 globally for this process
+// This is the most reliable way to avoid ENETUNREACH on hosts like Render
+// that don't support outbound IPv6 connections
+dns.setDefaultResultOrder('ipv4first');
 
 async function createTransport() {
   // If no SMTP credentials configured, fallback to Ethereal for development
@@ -22,36 +24,27 @@ async function createTransport() {
     });
   }
 
-  // Resolve hostname to IPv4 address explicitly to avoid IPv6 ENETUNREACH errors
-  // on hosts like Render that don't support outbound IPv6
-  let smtpHost = process.env.SMTP_HOST!;
-  try {
-    const addresses = await resolve4(smtpHost);
-    if (addresses.length > 0) {
-      smtpHost = addresses[0];
-      console.log(`Resolved ${process.env.SMTP_HOST} -> ${smtpHost} (IPv4)`);
-    }
-  } catch (err) {
-    console.warn(`Failed to resolve ${process.env.SMTP_HOST} to IPv4, using hostname:`, err);
-  }
+  // Render blocks outbound port 465 (SMTPS/SSL). Port 587 (STARTTLS) is the
+  // standard MSA submission port and is widely permitted on cloud providers.
+  const port = parseInt(process.env.SMTP_PORT || '587');
+  const usePort587 = port === 465; // Override 465 -> 587 since Render blocks 465
+  const smtpPort = usePort587 ? 587 : port;
+  const secure = usePort587 ? false : process.env.SMTP_SECURE === 'true';
+
+  console.log(`SMTP: connecting to ${process.env.SMTP_HOST}:${smtpPort} (secure: ${secure})`);
 
   return nodemailer.createTransport({
-    host: smtpHost,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
+    host: process.env.SMTP_HOST,
+    port: smtpPort,
+    secure,
     auth: {
       user: process.env.SMTP_USER,
       pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''), // strip spaces from app password
     },
     pool: false,
-    // Use TLS SNI with the original hostname for proper certificate validation
-    // when connecting via raw IP address
-    tls: {
-      servername: process.env.SMTP_HOST,
-    },
-    connectionTimeout: 10000, // 10s timeout on connection
-    greetingTimeout: 10000,
-    socketTimeout: 15000, // 15s socket timeout
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 30000,
   } as any);
 }
 
