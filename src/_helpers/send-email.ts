@@ -1,80 +1,52 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import dotenv from 'dotenv';
-import dns from 'dns';
 
 dotenv.config();
 
-// Force Node.js to prefer IPv4 over IPv6 globally for this process
-// This is the most reliable way to avoid ENETUNREACH on hosts like Render
-// that don't support outbound IPv6 connections
-dns.setDefaultResultOrder('ipv4first');
+// Create Resend client
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-async function createTransport() {
-  // If no SMTP credentials configured, fallback to Ethereal for development
-  if (!process.env.SMTP_USER) {
-    const testAccount = await nodemailer.createTestAccount();
-    return nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    });
-  }
-
-  console.log(`SMTP: connecting to ${process.env.SMTP_HOST}:${process.env.SMTP_PORT} (secure: ${process.env.SMTP_SECURE})`);
-
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''), // strip spaces from app password
-    },
-    pool: false,
-    connectionTimeout: 20000,
-    greetingTimeout: 20000,
-    socketTimeout: 30000,
-  } as any);
-}
+// Your verified email on Resend free plan — all emails will be sent here
+const RESEND_VERIFIED_TO = 'natsukid123@gmail.com';
 
 export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
-  const transport = await createTransport();
-  try {
-    console.log(`=== SENDING EMAIL ===`);
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`=====================`);
+  // Log the actual intended recipient
+  console.log('=== SENDING EMAIL ===');
+  console.log(`Intended recipient: ${to}`);
+  console.log(`Subject: ${subject}`);
+  console.log(`Sending via Resend to verified email: ${RESEND_VERIFIED_TO}`);
+  console.log('=====================');
 
-    const info: any = await transport.sendMail({
-      from: process.env.EMAIL_FROM || '"Auth API" <noreply@authapi.com>',
-      to,
+  // Prepend a note about the actual recipient inside the email body
+  const emailHtml = `
+    <div style="background:#fef3cd; border:1px solid #ffc107; padding:12px; margin-bottom:16px; border-radius:6px;">
+      <strong>📧 This email was intended for:</strong> ${to}
+    </div>
+    ${html}
+  `;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM || '"Auth API" <onboarding@resend.dev>',
+      to: RESEND_VERIFIED_TO, // hardcoded to your verified email (free plan limitation)
       subject,
-      html,
+      html: emailHtml,
     });
 
-    // For Ethereal, log the preview URL
-    if (info.messageId) {
-      const previewUrl = nodemailer.getTestMessageUrl(info);
-      if (previewUrl) {
-        console.log('Ethereal Preview URL:', previewUrl);
-      }
+    if (error) {
+      console.error('Resend API error:', error);
+      throw error;
     }
 
-    console.log('Email sent successfully, message ID:', info.messageId);
-    return info;
+    console.log('Email sent successfully via Resend, ID:', data?.id);
+    return data;
   } catch (err: any) {
     console.error('Email sending failed:', err);
     console.log('=== EMAIL CONTENT (sending failed) ===');
-    console.log(`To: ${to}`);
+    console.log(`Intended To: ${to}`);
     console.log(`Subject: ${subject}`);
-    console.log(`Body:\n${html.replace(/<[^>]*>/g, '')}`);
+    console.log(`Body:\n${emailHtml.replace(/<[^>]*>/g, '')}`);
     console.log('======================================');
     throw err;
-  } finally {
-    transport.close();
   }
 }
